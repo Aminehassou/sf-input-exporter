@@ -1,56 +1,77 @@
 const imageFilenames = [
-  "6.png",
-  "di.png",
-  "mod-any.png",
-  "cheer.png",
-  "func.png",
-  "od.png",
-  "spd.png",
-  "9.png",
-  "plus.png",
-  "lk.png",
-  "3x.png",
-  "charge4.png",
-  "filelist.txt",
+  // Basic attacks
+  "lp.png",
   "mp.png",
-  "charge2.png",
+  "hp.png",
+  "p.png",
+  "lk.png",
+  "mk.png",
+  "hk.png",
+  "k.png",
+  "mod-l.png",
+  "mod-m.png",
+  "mod-h.png",
+  "mod-any.png",
+  "mod-auto.png",
+  "grab.png",
+
+  // Directional inputs (numpad notation)
+  "1.png",
   "2.png",
-  "dp.png",
-  "push.png",
-  "minus.png",
-  "superart.png",
+  "3.png",
   "4.png",
   "5.png",
-  "1.png",
-  "3.png",
+  "6.png",
+  "7.png",
   "8.png",
-  "mod-h.png",
-  "hp.png",
-  "k.png",
-  "grab.png",
+  "9.png",
+  "charge2.png",
+  "charge4.png",
+  "charge6.png",
+
+  // Special moves and modifiers
+  "special.png",
+  "superart.png",
+
+  // Command inputs
+  "dp.png",
   "hcf.png",
   "hcb.png",
-  "hk.png",
-  "p.png",
-  "mod-l.png",
-  "7.png",
-  "lp.png",
-  "mod-m.png",
-  "release.png",
-  "mk.png",
-  "linkl.png",
-  "tap.png",
-  "special.png",
-  "linkr.png",
+
+  // Other actions
+  "push.png",
   "dash.png",
-  "mod-auto.png",
-  "charge6.png",
+  "tap.png",
+  "release.png",
+  "linkl.png",
+  "linkr.png",
+
+  // Modifiers and states
+  "plus.png",
+  "minus.png",
+  "3x.png",
+  "od.png",
+  "spd.png",
+  "cheer.png",
+  "func.png",
+
+  "di.png",
 ];
-export default function ImagesList() {
+
+export default function ImagesList({
+  onImageClick,
+}: {
+  onImageClick: (filename: string) => void;
+}) {
   return (
-    <div>
+    <div className="images-list-container">
       {imageFilenames.map((filename, idx) => (
-        <img key={idx} src={`../assets/icons/${filename}`} alt={filename} />
+        <img
+          key={idx}
+          src={`./images/icons/${filename}`}
+          alt={filename}
+          onClick={() => onImageClick(filename)}
+        />
       ))}
     </div>
   );
