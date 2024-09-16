@@ -1,10 +1,9 @@
-import { useState, useRef, KeyboardEvent } from "react";
+import { useState, useRef, KeyboardEvent, useEffect } from "react";
 import html2canvas from "html2canvas";
 import "./App.scss";
 import ImagesList from "./components/ImagesList";
 
 const App = () => {
-  const [inputValue, setInputValue] = useState("");
   const [caretPosition, setCaretPosition] = useState(0);
   const inputRef = useRef<HTMLDivElement>(null);
 
@@ -14,7 +13,7 @@ const App = () => {
       img.src = `./images/icons/${filename}`;
       img.alt = filename;
       inputRef.current.appendChild(img);
-      setInputValue(inputRef.current.innerHTML);
+      // Removed: setInputValue(inputRef.current.innerHTML);
     }
   };
 
@@ -27,25 +26,28 @@ const App = () => {
         setCaretPosition(range.startOffset);
         console.log(range.startOffset, range.collapsed);
         if (range.collapsed) {
-          if (range.startContainer === inputRef.current) {
+          const node = range.startContainer;
+
+          if (node === inputRef.current) {
             // If the cursor is directly in the inputRef
             if (range.startOffset > 0) {
               const childNode =
                 inputRef.current.childNodes[range.startOffset - 1];
               if (childNode.nodeType === Node.TEXT_NODE) {
                 // Remove last character of text node
-                childNode.textContent = childNode.textContent!.slice(0, -1);
-                if (childNode.textContent === "") {
-                  inputRef.current.removeChild(childNode);
+                const textNode = childNode as Text;
+                textNode.deleteData(textNode.length - 1, 1);
+                if (textNode.length === 0) {
+                  inputRef.current.removeChild(textNode);
                 }
               } else {
                 // Remove the entire icon (img element)
                 inputRef.current.removeChild(childNode);
               }
             }
-          } else {
+          } else if (node.nodeType === Node.TEXT_NODE) {
             // If the cursor is inside a text node
-            const textNode = range.startContainer as Text;
+            const textNode = node as Text;
             if (range.startOffset > 0) {
               textNode.deleteData(range.startOffset - 1, 1);
               if (textNode.length === 0) {
@@ -55,17 +57,46 @@ const App = () => {
               // If at the start of a text node, remove the last character or icon before it
               const prevNode = textNode.previousSibling;
               if (prevNode.nodeType === Node.TEXT_NODE) {
-                prevNode.textContent = prevNode.textContent!.slice(0, -1);
-                if (prevNode.textContent === "") {
-                  prevNode.parentNode?.removeChild(prevNode);
+                const prevTextNode = prevNode as Text;
+                prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                if (prevTextNode.length === 0) {
+                  prevTextNode.parentNode?.removeChild(prevTextNode);
+                }
+              } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
+                prevNode.parentNode?.removeChild(prevNode);
+              }
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            // If the cursor is inside an element node (e.g., an img tag)
+            const elementNode = node as HTMLElement;
+            if (elementNode.nodeName === "IMG") {
+              // Remove the image element
+              elementNode.parentNode?.removeChild(elementNode);
+            } else if (range.startOffset > 0) {
+              const childNode = elementNode.childNodes[range.startOffset - 1];
+              if (childNode.nodeType === Node.TEXT_NODE) {
+                const textNode = childNode as Text;
+                textNode.deleteData(textNode.length - 1, 1);
+                if (textNode.length === 0) {
+                  textNode.parentNode?.removeChild(textNode);
                 }
               } else {
+                elementNode.removeChild(childNode);
+              }
+            } else if (elementNode.previousSibling) {
+              const prevNode = elementNode.previousSibling;
+              if (prevNode.nodeType === Node.TEXT_NODE) {
+                const prevTextNode = prevNode as Text;
+                prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                if (prevTextNode.length === 0) {
+                  prevTextNode.parentNode?.removeChild(prevTextNode);
+                }
+              } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
                 prevNode.parentNode?.removeChild(prevNode);
               }
             }
           }
         }
-        setInputValue(inputRef.current.innerHTML);
       }
     }
   };
@@ -150,9 +181,40 @@ const App = () => {
       };
 
       Array.from(inputRef.current.childNodes).forEach(convertTextNode);
-      setInputValue(inputRef.current.innerHTML);
     }
   };
+
+  useEffect(() => {
+    const handlePaste = (e: ClipboardEvent) => {
+      e.preventDefault();
+      const text = e.clipboardData?.getData("text/plain");
+      if (text) {
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+          range.insertNode(document.createTextNode(text));
+          // Move the caret after the inserted text
+          range.setStartAfter(range.endContainer);
+          range.setEndAfter(range.endContainer);
+          // Instead of removing all ranges and adding the range back, directly collapse the range to the end
+          selection.collapseToEnd();
+        }
+      }
+    };
+
+    const inputElement = inputRef.current;
+    if (inputElement) {
+      inputElement.addEventListener("paste", handlePaste);
+    }
+
+    // Cleanup function to remove the event listener when the component unmounts
+    return () => {
+      if (inputElement) {
+        inputElement.removeEventListener("paste", handlePaste);
+      }
+    };
+  }, []);
 
   return (
     <div className="flex-container">
@@ -162,7 +224,6 @@ const App = () => {
         ref={inputRef}
         contentEditable
         onKeyDown={handleKeyDown}
-        dangerouslySetInnerHTML={{ __html: inputValue }}
         className="input-preview"
         tabIndex={0}
       />
