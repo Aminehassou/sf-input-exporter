@@ -56,6 +56,7 @@ const imageFilenames = [
   "func.png",
 
   "di.png",
+  "drc.png",
 ];
 
 export default function ImagesList({

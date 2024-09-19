@@ -1,10 +1,9 @@
-import { useState, useRef, KeyboardEvent, useEffect } from "react";
+import { useRef, KeyboardEvent, useEffect } from "react";
 import html2canvas from "html2canvas";
 import "./App.scss";
 import ImagesList from "./components/ImagesList";
 
 const App = () => {
-  const [caretPosition, setCaretPosition] = useState(0);
   const inputRef = useRef<HTMLDivElement>(null);
 
   const handleImageClick = (filename: string) => {
@@ -16,16 +15,17 @@ const App = () => {
       // Removed: setInputValue(inputRef.current.innerHTML);
     }
   };
-
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Backspace") {
-      e.preventDefault();
       const selection = window.getSelection();
       if (selection && inputRef.current) {
         const range = selection.getRangeAt(0);
-        setCaretPosition(range.startOffset);
-        console.log(range.startOffset, range.collapsed);
+
         if (range.collapsed) {
+          // No selection, handle custom backspace behavior
+          e.preventDefault();
+
+          // Existing code to handle backspace when no selection
           const node = range.startContainer;
 
           if (node === inputRef.current) {
@@ -96,6 +96,15 @@ const App = () => {
               }
             }
           }
+        } else {
+          // Selection exists, handle deletion of selected content
+          e.preventDefault();
+
+          // Delete the selected content
+          range.deleteContents();
+
+          // Move the caret to the start of the selection
+          selection.collapseToStart();
         }
       }
     }
@@ -126,12 +135,24 @@ const App = () => {
         "7": "7.png",
         "8": "8.png",
         "9": "9.png",
+        "st.": "5.png",
+        "cr.": "2.png",
+        "b.": "4.png",
+        st: "5.png",
+        cr: "2.png",
+        b: "4.png",
         lp: "lp.png",
         mp: "mp.png",
         hp: "hp.png",
         lk: "lk.png",
         mk: "mk.png",
         hk: "hk.png",
+        p: "p.png",
+        k: "k.png",
+        xx: "plus.png",
+        drc: "drc.png",
+        ",": "linkr.png",
+        ">": "linkr.png",
         "[2]": "charge2.png",
         "[4]": "charge4.png",
         "[6]": "charge6.png",
