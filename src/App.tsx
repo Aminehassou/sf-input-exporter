@@ -25,7 +25,6 @@ const App = () => {
           // No selection, handle custom backspace behavior
           e.preventDefault();
 
-          // Existing code to handle backspace when no selection
           const node = range.startContainer;
 
           if (node === inputRef.current) {
@@ -34,51 +33,53 @@ const App = () => {
               const childNode =
                 inputRef.current.childNodes[range.startOffset - 1];
               if (childNode.nodeType === Node.TEXT_NODE) {
-                // Remove last character of text node
                 const textNode = childNode as Text;
-                textNode.deleteData(textNode.length - 1, 1);
-                if (textNode.length === 0) {
-                  inputRef.current.removeChild(textNode);
+                if (textNode.length > 0) {
+                  textNode.deleteData(textNode.length - 1, 1);
+                  if (textNode.length === 0) {
+                    inputRef.current.removeChild(textNode);
+                  }
                 }
               } else {
-                // Remove the entire icon (img element)
                 inputRef.current.removeChild(childNode);
               }
             }
           } else if (node.nodeType === Node.TEXT_NODE) {
-            // If the cursor is inside a text node
             const textNode = node as Text;
             if (range.startOffset > 0) {
-              textNode.deleteData(range.startOffset - 1, 1);
-              if (textNode.length === 0) {
-                textNode.parentNode?.removeChild(textNode);
+              if (textNode.length > 0 && range.startOffset - 1 >= 0) {
+                textNode.deleteData(range.startOffset - 1, 1);
+                if (textNode.length === 0) {
+                  textNode.parentNode?.removeChild(textNode);
+                }
               }
             } else if (textNode.previousSibling) {
-              // If at the start of a text node, remove the last character or icon before it
               const prevNode = textNode.previousSibling;
               if (prevNode.nodeType === Node.TEXT_NODE) {
                 const prevTextNode = prevNode as Text;
-                prevTextNode.deleteData(prevTextNode.length - 1, 1);
-                if (prevTextNode.length === 0) {
-                  prevTextNode.parentNode?.removeChild(prevTextNode);
+                if (prevTextNode.length > 0) {
+                  prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                  if (prevTextNode.length === 0) {
+                    prevTextNode.parentNode?.removeChild(prevTextNode);
+                  }
                 }
               } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
                 prevNode.parentNode?.removeChild(prevNode);
               }
             }
           } else if (node.nodeType === Node.ELEMENT_NODE) {
-            // If the cursor is inside an element node (e.g., an img tag)
             const elementNode = node as HTMLElement;
             if (elementNode.nodeName === "IMG") {
-              // Remove the image element
               elementNode.parentNode?.removeChild(elementNode);
             } else if (range.startOffset > 0) {
               const childNode = elementNode.childNodes[range.startOffset - 1];
               if (childNode.nodeType === Node.TEXT_NODE) {
                 const textNode = childNode as Text;
-                textNode.deleteData(textNode.length - 1, 1);
-                if (textNode.length === 0) {
-                  textNode.parentNode?.removeChild(textNode);
+                if (textNode.length > 0) {
+                  textNode.deleteData(textNode.length - 1, 1);
+                  if (textNode.length === 0) {
+                    textNode.parentNode?.removeChild(textNode);
+                  }
                 }
               } else {
                 elementNode.removeChild(childNode);
@@ -87,9 +88,11 @@ const App = () => {
               const prevNode = elementNode.previousSibling;
               if (prevNode.nodeType === Node.TEXT_NODE) {
                 const prevTextNode = prevNode as Text;
-                prevTextNode.deleteData(prevTextNode.length - 1, 1);
-                if (prevTextNode.length === 0) {
-                  prevTextNode.parentNode?.removeChild(prevTextNode);
+                if (prevTextNode.length > 0) {
+                  prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                  if (prevTextNode.length === 0) {
+                    prevTextNode.parentNode?.removeChild(prevTextNode);
+                  }
                 }
               } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
                 prevNode.parentNode?.removeChild(prevNode);
