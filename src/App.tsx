@@ -12,7 +12,6 @@ const App = () => {
       img.src = `./images/icons/${filename}`;
       img.alt = filename;
       inputRef.current.appendChild(img);
-      // Removed: setInputValue(inputRef.current.innerHTML);
     }
   };
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -100,10 +99,8 @@ const App = () => {
             }
           }
         } else {
-          // Selection exists, handle deletion of selected content
           e.preventDefault();
 
-          // Delete the selected content
           range.deleteContents();
 
           // Move the caret to the start of the selection
@@ -155,6 +152,7 @@ const App = () => {
         xx: "plus.png",
         drc: "drc.png",
         ",": "linkr.png",
+        "->": "linkr.png",
         ">": "linkr.png",
         "[2]": "charge2.png",
         "[4]": "charge4.png",
