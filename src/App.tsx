@@ -160,12 +160,17 @@ const App = () => {
         di: "di.png",
       };
 
+      // Function to escape special regex characters
+      const escapeRegex = (str: string) => {
+        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      };
+
       const convertTextNode = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE && node.textContent) {
           const fragment = document.createDocumentFragment();
           const regex = new RegExp(
             `(${Object.keys(iconMap)
-              .map((key) => key.replace(/[[\]]/g, "\\$&"))
+              .map((key) => escapeRegex(key)) // Escape special regex characters
               .join("|")})`,
             "gi"
           );
@@ -180,10 +185,20 @@ const App = () => {
                 )
               );
             }
-            const img = document.createElement("img");
-            img.src = `./images/icons/${iconMap[match[0].toLowerCase()]}`;
-            img.alt = match[0];
-            fragment.appendChild(img);
+
+            const iconKey = match[0].toLowerCase();
+            const iconFile = iconMap[iconKey];
+
+            if (iconFile) {
+              const img = document.createElement("img");
+              img.src = `./images/icons/${iconFile}`;
+              img.alt = match[0];
+              fragment.appendChild(img);
+            } else {
+              // If icon is not found, append the text as is
+              fragment.appendChild(document.createTextNode(match[0]));
+            }
+
             lastIndex = regex.lastIndex;
           }
 
