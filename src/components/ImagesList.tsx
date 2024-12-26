@@ -32,6 +32,9 @@ const imageFilenames = [
   // Special moves and modifiers
   "special.png",
   "superart.png",
+  "sa1.png",
+  "sa2.png",
+  "sa3.png",
 
   // Command inputs
   "dp.png",
