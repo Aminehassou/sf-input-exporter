@@ -14,20 +14,18 @@ const App = () => {
       inputRef.current.appendChild(img);
     }
   };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Backspace") {
       const selection = window.getSelection();
-      if (selection && inputRef.current) {
+      if (selection && inputRef.current && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
 
         if (range.collapsed) {
-          // No selection, handle custom backspace behavior
           e.preventDefault();
-
           const node = range.startContainer;
 
           if (node === inputRef.current) {
-            // If the cursor is directly in the inputRef
             if (range.startOffset > 0) {
               const childNode =
                 inputRef.current.childNodes[range.startOffset - 1];
@@ -100,16 +98,14 @@ const App = () => {
           }
         } else {
           e.preventDefault();
-
           range.deleteContents();
-
-          // Move the caret to the start of the selection
           selection.collapseToStart();
         }
       }
     }
   };
 
+  // Export the content to an image
   const handleExport = async () => {
     if (inputRef.current) {
       const canvas = await html2canvas(inputRef.current, {
@@ -123,102 +119,107 @@ const App = () => {
     }
   };
 
+  // Escape special regex characters
+  const escapeRegex = (str: string) => {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  };
+
+  // Only block partial matches if preceded by a letter
+  // i.e. (?<![A-Za-z]) => do not match if a letter is right before
+  // We do NOT include st. in the iconMap because we want to remove it altogether.
+  const buildRegexFromMap = (iconMap: { [key: string]: string }) => {
+    const escapedKeys = Object.keys(iconMap).map(escapeRegex);
+    return new RegExp(`(?<![A-Za-z])(?:${escapedKeys.join("|")})`, "gi");
+  };
+
   const convertToIconNotation = () => {
-    if (inputRef.current) {
-      const iconMap: { [key: string]: string } = {
-        "1": "1.png",
-        "2": "2.png",
-        "3": "3.png",
-        "4": "4.png",
-        "5": "5.png",
-        "6": "6.png",
-        "7": "7.png",
-        "8": "8.png",
-        "9": "9.png",
-        "st.": "5.png",
-        "cr.": "2.png",
-        "b.": "4.png",
-        st: "5.png",
-        cr: "2.png",
-        b: "4.png",
-        lp: "lp.png",
-        mp: "mp.png",
-        hp: "hp.png",
-        lk: "lk.png",
-        mk: "mk.png",
-        hk: "hk.png",
-        p: "p.png",
-        k: "k.png",
-        xx: "plus.png",
-        drc: "drc.png",
-        ",": "linkr.png",
-        "->": "linkr.png",
-        ">": "linkr.png",
-        "[2]": "charge2.png",
-        "[4]": "charge4.png",
-        "[6]": "charge6.png",
-        di: "di.png",
-      };
+    if (!inputRef.current) return;
 
-      // Function to escape special regex characters
-      const escapeRegex = (str: string) => {
-        return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-      };
+    const iconMap: { [key: string]: string } = {
+      "1": "1.png",
+      "2": "2.png",
+      "3": "3.png",
+      "4": "4.png",
+      "5": "5.png",
+      "6": "6.png",
+      "7": "7.png",
+      "8": "8.png",
+      "9": "9.png",
+      "cr.": "2.png",
+      "b.": "4.png",
+      "j.": "8.png",
+      j: "8.png",
+      st: "5.png",
+      cr: "2.png",
+      b: "4.png",
+      lp: "lp.png",
+      mp: "mp.png",
+      hp: "hp.png",
+      lk: "lk.png",
+      mk: "mk.png",
+      hk: "hk.png",
+      p: "p.png",
+      k: "k.png",
+      xx: "plus.png",
+      x: "plus.png",
+      drc: "drc.png",
+      ",": "linkr.png",
+      "->": "linkr.png",
+      ">": "linkr.png",
+      "[2]": "charge2.png",
+      "[4]": "charge4.png",
+      "[6]": "charge6.png",
+      di: "di.png",
+    };
 
-      const convertTextNode = (node: Node) => {
-        if (node.nodeType === Node.TEXT_NODE && node.textContent) {
-          const fragment = document.createDocumentFragment();
-          const regex = new RegExp(
-            `(${Object.keys(iconMap)
-              .map((key) => escapeRegex(key)) // Escape special regex characters
-              .join("|")})`,
-            "gi"
-          );
-          let lastIndex = 0;
-          let match;
+    const removeStDotRegex = /st\./gi;
 
-          while ((match = regex.exec(node.textContent)) !== null) {
-            if (match.index > lastIndex) {
-              fragment.appendChild(
-                document.createTextNode(
-                  node.textContent.slice(lastIndex, match.index)
-                )
-              );
-            }
+    const regex = buildRegexFromMap(iconMap);
 
-            const iconKey = match[0].toLowerCase();
-            const iconFile = iconMap[iconKey];
+    const convertTextNode = (node: Node) => {
+      if (node.nodeType === Node.TEXT_NODE && node.textContent) {
+        const text = node.textContent.replace(removeStDotRegex, "");
 
-            if (iconFile) {
-              const img = document.createElement("img");
-              img.src = `./images/icons/${iconFile}`;
-              img.alt = match[0];
-              fragment.appendChild(img);
-            } else {
-              // If icon is not found, append the text as is
-              fragment.appendChild(document.createTextNode(match[0]));
-            }
+        const fragment = document.createDocumentFragment();
+        let lastIndex = 0;
+        let match;
 
-            lastIndex = regex.lastIndex;
-          }
-
-          if (lastIndex < node.textContent.length) {
+        while ((match = regex.exec(text)) !== null) {
+          if (match.index > lastIndex) {
             fragment.appendChild(
-              document.createTextNode(node.textContent.slice(lastIndex))
+              document.createTextNode(text.slice(lastIndex, match.index))
             );
           }
 
-          node.parentNode?.replaceChild(fragment, node);
-        } else if (
-          node.nodeType === Node.ELEMENT_NODE &&
-          node.nodeName !== "IMG"
-        ) {
-          Array.from(node.childNodes).forEach(convertTextNode);
-        }
-      };
+          const matchedKey = match[0].toLowerCase();
+          const iconFile = iconMap[matchedKey] || null;
 
-      Array.from(inputRef.current.childNodes).forEach(convertTextNode);
-    }
+          if (iconFile) {
+            const img = document.createElement("img");
+            img.src = `./images/icons/${iconFile}`;
+            img.alt = match[0];
+            fragment.appendChild(img);
+          } else {
+            fragment.appendChild(document.createTextNode(match[0]));
+          }
+
+          lastIndex = regex.lastIndex;
+        }
+
+        if (lastIndex < text.length) {
+          fragment.appendChild(document.createTextNode(text.slice(lastIndex)));
+        }
+
+        node.parentNode?.replaceChild(fragment, node);
+      } else if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.nodeName !== "IMG"
+      ) {
+        Array.from(node.childNodes).forEach(convertTextNode);
+      }
+    };
+
+    Array.from(inputRef.current.childNodes).forEach(convertTextNode);
   };
 
   useEffect(() => {
@@ -231,24 +232,18 @@ const App = () => {
           const range = selection.getRangeAt(0);
           range.deleteContents();
           range.insertNode(document.createTextNode(text));
-          // Move the caret after the inserted text
-          range.setStartAfter(range.endContainer);
-          range.setEndAfter(range.endContainer);
-          // Instead of removing all ranges and adding the range back, directly collapse the range to the end
-          selection.collapseToEnd();
+          range.collapse(false);
         }
       }
     };
 
     const inputElement = inputRef.current;
     if (inputElement) {
-      inputElement.addEventListener("paste", handlePaste);
+      inputElement.addEventListener("paste", handlePaste as EventListener);
     }
-
-    // Cleanup function to remove the event listener when the component unmounts
     return () => {
       if (inputElement) {
-        inputElement.removeEventListener("paste", handlePaste);
+        inputElement.removeEventListener("paste", handlePaste as EventListener);
       }
     };
   }, []);
