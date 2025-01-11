@@ -3,6 +3,58 @@ import html2canvas from "html2canvas";
 import "./App.scss";
 import ImagesList from "./components/ImagesList";
 
+const iconMap: { [key: string]: string } = {
+  "1": "1.png",
+  "2": "2.png",
+  "3": "3.png",
+  "4": "4.png",
+  "5": "5.png",
+  "6": "6.png",
+  "7": "7.png",
+  "8": "8.png",
+  "9": "9.png",
+  "cr.": "2.png",
+  "b.": "4.png",
+  "j.": "8.png",
+  j: "8.png",
+  st: "5.png",
+  cr: "2.png",
+  b: "4.png",
+  lp: "lp.png",
+  mp: "mp.png",
+  hp: "hp.png",
+  lk: "lk.png",
+  mk: "mk.png",
+  hk: "hk.png",
+  p: "p.png",
+  k: "k.png",
+  xx: "plus.png",
+  x: "plus.png",
+  drc: "drc.png",
+  ",": "linkr.png",
+  "->": "linkr.png",
+  ">": "linkr.png",
+  "[2]": "charge2.png",
+  "[4]": "charge4.png",
+  "[6]": "charge6.png",
+  lvl1: "sa1.png",
+  "lvl 1": "sa1.png",
+  "level 1": "sa1.png",
+  sa1: "sa1.png",
+  "sa 1": "sa1.png",
+  lvl2: "sa2.png",
+  "lvl 2": "sa2.png",
+  "level 2": "sa2.png",
+  sa2: "sa2.png",
+  "sa 2": "sa2.png",
+  lvl3: "sa3.png",
+  "lvl 3": "sa3.png",
+  "level 3": "sa3.png",
+  sa3: "sa3.png",
+  "sa 3": "sa3.png",
+  di: "di.png",
+};
+
 const App = () => {
   const inputRef = useRef<HTMLDivElement>(null);
   const [iconSize, setIconSize] = useState(70);
@@ -138,59 +190,6 @@ const App = () => {
   const convertToIconNotation = () => {
     if (!inputRef.current) return;
 
-    const iconMap: { [key: string]: string } = {
-      "1": "1.png",
-      "2": "2.png",
-      "3": "3.png",
-      "4": "4.png",
-      "5": "5.png",
-      "6": "6.png",
-      "7": "7.png",
-      "8": "8.png",
-      "9": "9.png",
-      "cr.": "2.png",
-      "b.": "4.png",
-      "j.": "8.png",
-      j: "8.png",
-      st: "5.png",
-      cr: "2.png",
-      b: "4.png",
-      lp: "lp.png",
-      mp: "mp.png",
-      hp: "hp.png",
-      lk: "lk.png",
-      mk: "mk.png",
-      hk: "hk.png",
-      p: "p.png",
-      k: "k.png",
-      xx: "plus.png",
-      x: "plus.png",
-      drc: "drc.png",
-      ",": "linkr.png",
-      "->": "linkr.png",
-      ">": "linkr.png",
-      "[2]": "charge2.png",
-      "[4]": "charge4.png",
-      "[6]": "charge6.png",
-      lvl1: "sa1.png",
-      "lvl 1": "sa1.png",
-      "level 1": "sa1.png",
-      sa1: "sa1.png",
-      "sa 1": "sa1.png",
-      lvl2: "sa2.png",
-      "lvl 2": "sa2.png",
-      "level 2": "sa2.png",
-      sa2: "sa2.png",
-      "sa 2": "sa2.png",
-      lvl3: "sa3.png",
-      "lvl 3": "sa3.png",
-      "level 3": "sa3.png",
-      sa3: "sa3.png",
-      "sa 3": "sa3.png",
-      level3: "sa3.png",
-      di: "di.png",
-    };
-
     const removeStDotRegex = /st\./gi;
 
     const regex = buildRegexFromMap(iconMap);
@@ -241,6 +240,41 @@ const App = () => {
     };
 
     Array.from(inputRef.current.childNodes).forEach(convertTextNode);
+  };
+
+  const iconToTextMap = Object.fromEntries(
+    Object.entries(iconMap).map(([text, image]) => [image, text])
+  );
+
+  const convertToNumpadNotation = () => {
+    if (inputRef.current) {
+      const nodes = Array.from(inputRef.current.childNodes);
+
+      nodes.forEach((node) => {
+        if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === "IMG") {
+          const imgElement = node as HTMLImageElement;
+          const imageName = imgElement.src.split("/").pop() || "";
+          const textEquivalent = iconToTextMap[imageName];
+
+          if (textEquivalent) {
+            const textNode = document.createTextNode(textEquivalent);
+            inputRef.current?.replaceChild(textNode, imgElement);
+
+            // Add a space after the text node if the next sibling isn't already a space
+            if (
+              textNode.nextSibling &&
+              textNode.nextSibling.nodeType === Node.TEXT_NODE &&
+              textNode.nextSibling.textContent?.startsWith(" ")
+            ) {
+              return;
+            }
+
+            const spaceNode = document.createTextNode(" ");
+            inputRef.current?.insertBefore(spaceNode, textNode.nextSibling);
+          }
+        }
+      });
+    }
   };
 
   // Update all icons in the input field when the icon size changes
@@ -309,6 +343,9 @@ const App = () => {
         </button>
         <button onClick={convertToIconNotation} className="convert-button">
           Convert to Icon Notation
+        </button>
+        <button onClick={convertToNumpadNotation} className="convert-button">
+          Convert to Numpad Notation
         </button>
       </div>
       <div className="images-list-container">
