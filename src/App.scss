@@ -4,7 +4,7 @@
   gap: 1rem;
   padding: 1rem;
   width: 100%;
-  max-width: 1200px; // Adjust this value as needed
+  max-width: 1200px;
   margin: 0 auto;
 }
 
@@ -36,8 +36,7 @@
   img {
     vertical-align: middle;
     margin: 2px;
-    // Increase the image size
-    height: 70px; // Adjust this value as needed
+    height: 70px;
     width: auto;
   }
 }
@@ -54,7 +53,6 @@ label {
   gap: 0.5rem;
 }
 
-// Add styles for the images in the ImagesList component
 .images-list-container img {
   height: 70px; // Match the size in .input-preview
   width: auto;
@@ -121,5 +119,16 @@ label {
 
   &:hover {
     background-color: #218838;
+  }
+}
+
+.size-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 10px 0;
+
+  input[type="range"] {
+    width: 200px;
   }
 }

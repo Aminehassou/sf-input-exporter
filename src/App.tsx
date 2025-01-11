@@ -1,16 +1,19 @@
-import { useRef, KeyboardEvent, useEffect } from "react";
+import { useRef, KeyboardEvent, useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import "./App.scss";
 import ImagesList from "./components/ImagesList";
 
 const App = () => {
   const inputRef = useRef<HTMLDivElement>(null);
+  const [iconSize, setIconSize] = useState(70);
 
   const handleImageClick = (filename: string) => {
     if (inputRef.current) {
       const img = document.createElement("img");
       img.src = `./images/icons/${filename}`;
       img.alt = filename;
+      img.style.width = `${iconSize}px`;
+      img.style.height = `${iconSize}px`;
       inputRef.current.appendChild(img);
     }
   };
@@ -214,6 +217,8 @@ const App = () => {
             const img = document.createElement("img");
             img.src = `./images/icons/${iconFile}`;
             img.alt = match[0];
+            img.style.width = `${iconSize}px`;
+            img.style.height = `${iconSize}px`;
             fragment.appendChild(img);
           } else {
             fragment.appendChild(document.createTextNode(match[0]));
@@ -237,6 +242,17 @@ const App = () => {
 
     Array.from(inputRef.current.childNodes).forEach(convertTextNode);
   };
+
+  // Update all icons in the input field when the icon size changes
+  useEffect(() => {
+    if (inputRef.current) {
+      const images = inputRef.current.querySelectorAll("img");
+      images.forEach((img) => {
+        img.style.width = `${iconSize}px`;
+        img.style.height = `${iconSize}px`;
+      });
+    }
+  }, [iconSize]);
 
   useEffect(() => {
     const handlePaste = (e: ClipboardEvent) => {
@@ -275,6 +291,18 @@ const App = () => {
         className="input-preview"
         tabIndex={0}
       />
+      <div className="size-control">
+        <label htmlFor="icon-size">Icon Size</label>
+        <input
+          id="icon-size"
+          type="range"
+          min="20"
+          max="150"
+          value={iconSize}
+          onChange={(e) => setIconSize(parseInt(e.target.value))}
+        />
+        <span>{iconSize}px</span>
+      </div>
       <div className="button-container">
         <button onClick={handleExport} className="export-button">
           Export as Image
