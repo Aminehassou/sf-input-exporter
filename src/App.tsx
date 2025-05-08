@@ -297,9 +297,11 @@ const App = () => {
         "[6]",
       ];
       const buttons = ["lp", "mp", "hp", "lk", "mk", "hk", "p", "k"];
+      const delimiters = [",", "xx", "drc"];
       let prevToken: string | null = null;
+      let lastWasDelimiter = false;
 
-      nodes.forEach((node) => {
+      nodes.forEach((node, idx) => {
         if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === "IMG") {
           const imgElement = node as HTMLImageElement;
           const imageName = imgElement.src.split("/").pop() || "";
@@ -317,6 +319,13 @@ const App = () => {
               result += textEquivalent;
               prevToken = textEquivalent;
             }
+            // Add a space after delimiters
+            if (delimiters.includes(textEquivalent.toLowerCase())) {
+              result += " ";
+              lastWasDelimiter = true;
+            } else {
+              lastWasDelimiter = false;
+            }
           }
         } else if (node.nodeType === Node.TEXT_NODE) {
           // Only add non-space text content
@@ -325,13 +334,69 @@ const App = () => {
           for (let i = 0; i < text.length; i++) {
             result += text[i];
             prevToken = text[i];
+            // Add a space after delimiters
+            if (delimiters.includes(text[i].toLowerCase())) {
+              result += " ";
+              lastWasDelimiter = true;
+            } else {
+              lastWasDelimiter = false;
+            }
+          }
+        }
+        // Add a space between logical groups (if not last node)
+        if (idx < nodes.length - 1) {
+          // Peek at next node's textEquivalent if it's an IMG
+          let nextIsDelimiter = false;
+          let nextIsDirection = false;
+          let currIsDirection = false;
+          const nextNode = nodes[idx + 1];
+          if (
+            nextNode.nodeType === Node.ELEMENT_NODE &&
+            nextNode.nodeName === "IMG"
+          ) {
+            const imgElement = nextNode as HTMLImageElement;
+            const imageName = imgElement.src.split("/").pop() || "";
+            const textEquivalent = iconToTextMap[imageName];
+            if (textEquivalent) {
+              if (delimiters.includes(textEquivalent.toLowerCase())) {
+                nextIsDelimiter = true;
+              }
+              if (directions.includes(textEquivalent)) {
+                nextIsDirection = true;
+              }
+            }
+          } else if (nextNode.nodeType === Node.TEXT_NODE) {
+            const text = nextNode.textContent?.replace(/\s+/g, "") || "";
+            if (text.length > 0) {
+              if (delimiters.includes(text[0].toLowerCase())) {
+                nextIsDelimiter = true;
+              }
+              if (directions.includes(text[0])) {
+                nextIsDirection = true;
+              }
+            }
+          }
+          // Check if current token is a direction
+          if (prevToken && directions.includes(prevToken)) {
+            currIsDirection = true;
+          }
+          // Only add a space if:
+          // - Not both current and next are directions
+          // - Not just after a delimiter (already handled)
+          // - Not just before a delimiter (handled by delimiter logic)
+          if (
+            !lastWasDelimiter &&
+            !nextIsDelimiter &&
+            !(currIsDirection && nextIsDirection)
+          ) {
+            result += " ";
           }
         }
       });
 
       // Clear the input and add the concatenated result
       inputRef.current.innerHTML = "";
-      inputRef.current.appendChild(document.createTextNode(result));
+      inputRef.current.appendChild(document.createTextNode(result.trim()));
     }
   };
 
