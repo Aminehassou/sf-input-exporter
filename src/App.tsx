@@ -55,6 +55,36 @@ const iconMap: { [key: string]: string } = {
   di: "di.png",
 };
 
+const iconToTextMap: { [key: string]: string } = {
+  "1.png": "1",
+  "2.png": "2",
+  "3.png": "3",
+  "4.png": "4",
+  "5.png": "5",
+  "6.png": "6",
+  "7.png": "7",
+  "8.png": "8",
+  "9.png": "9",
+  "lp.png": "lp",
+  "mp.png": "mp",
+  "hp.png": "hp",
+  "lk.png": "lk",
+  "mk.png": "mk",
+  "hk.png": "hk",
+  "p.png": "p",
+  "k.png": "k",
+  "plus.png": "x",
+  "drc.png": "drc",
+  "linkr.png": ",",
+  "charge2.png": "[2]",
+  "charge4.png": "[4]",
+  "charge6.png": "[6]",
+  "sa1.png": "sa1",
+  "sa2.png": "sa2",
+  "sa3.png": "sa3",
+  "di.png": "di",
+};
+
 const App = () => {
   const inputRef = useRef<HTMLDivElement>(null);
   const [iconSize, setIconSize] = useState(70);
@@ -183,8 +213,12 @@ const App = () => {
   // i.e. (?<![A-Za-z]) => do not match if a letter is right before
   // We do NOT include st. in the iconMap because we want to remove it altogether.
   const buildRegexFromMap = (iconMap: { [key: string]: string }) => {
-    const escapedKeys = Object.keys(iconMap).map(escapeRegex);
-    return new RegExp(`(?<![A-Za-z])(?:${escapedKeys.join("|")})`, "gi");
+    // Sort keys by length descending to match longer tokens first
+    const escapedKeys = Object.keys(iconMap)
+      .sort((a, b) => b.length - a.length)
+      .map(escapeRegex);
+    // Match any of the tokens, regardless of what comes before
+    return new RegExp(`(?:${escapedKeys.join("|")})`, "gi");
   };
 
   const convertToIconNotation = () => {
@@ -212,10 +246,12 @@ const App = () => {
           const matchedKey = match[0].toLowerCase();
           const iconFile = iconMap[matchedKey] || null;
 
-          if (iconFile) {
+          if (matchedKey === "5") {
+            // Do nothing, skip adding icon or text
+          } else if (iconFile) {
             const img = document.createElement("img");
             img.src = `./images/icons/${iconFile}`;
-            img.alt = match[0];
+            img.alt = iconToTextMap[iconFile] || match[0];
             img.style.width = `${iconSize}px`;
             img.style.height = `${iconSize}px`;
             fragment.appendChild(img);
@@ -242,13 +278,26 @@ const App = () => {
     Array.from(inputRef.current.childNodes).forEach(convertTextNode);
   };
 
-  const iconToTextMap = Object.fromEntries(
-    Object.entries(iconMap).map(([text, image]) => [image, text])
-  );
-
   const convertToNumpadNotation = () => {
     if (inputRef.current) {
       const nodes = Array.from(inputRef.current.childNodes);
+      let result = "";
+      const directions = [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8",
+        "9",
+        "[2]",
+        "[4]",
+        "[6]",
+      ];
+      const buttons = ["lp", "mp", "hp", "lk", "mk", "hk", "p", "k"];
+      let prevToken: string | null = null;
 
       nodes.forEach((node) => {
         if (node.nodeType === Node.ELEMENT_NODE && node.nodeName === "IMG") {
@@ -257,23 +306,32 @@ const App = () => {
           const textEquivalent = iconToTextMap[imageName];
 
           if (textEquivalent) {
-            const textNode = document.createTextNode(textEquivalent);
-            inputRef.current?.replaceChild(textNode, imgElement);
-
-            // Add a space after the text node if the next sibling isn't already a space
+            // If this is a punch/kick and previous token is not a direction, prepend 5
             if (
-              textNode.nextSibling &&
-              textNode.nextSibling.nodeType === Node.TEXT_NODE &&
-              textNode.nextSibling.textContent?.startsWith(" ")
+              buttons.includes(textEquivalent.toLowerCase()) &&
+              !directions.includes(prevToken || "")
             ) {
-              return;
+              result += "5" + textEquivalent;
+              prevToken = textEquivalent;
+            } else {
+              result += textEquivalent;
+              prevToken = textEquivalent;
             }
-
-            const spaceNode = document.createTextNode(" ");
-            inputRef.current?.insertBefore(spaceNode, textNode.nextSibling);
+          }
+        } else if (node.nodeType === Node.TEXT_NODE) {
+          // Only add non-space text content
+          const text = node.textContent?.replace(/\s+/g, "") || "";
+          // For text, update prevToken for each character
+          for (let i = 0; i < text.length; i++) {
+            result += text[i];
+            prevToken = text[i];
           }
         }
       });
+
+      // Clear the input and add the concatenated result
+      inputRef.current.innerHTML = "";
+      inputRef.current.appendChild(document.createTextNode(result));
     }
   };
 
