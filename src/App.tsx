@@ -7,6 +7,8 @@ import {
   faDownload,
   faHandFist,
   faKeyboard,
+  faGamepad,
+  faGear,
 } from "@fortawesome/free-solid-svg-icons";
 
 const iconMap: { [key: string]: string } = {
@@ -94,6 +96,50 @@ const iconToTextMap: { [key: string]: string } = {
 const App = () => {
   const inputRef = useRef<HTMLDivElement>(null);
   const [iconSize, setIconSize] = useState(70);
+  const heldKeysRef = useRef<Set<string>>(new Set());
+  const lastDirectionAddedRef = useRef<string | null>(null);
+  const [sf6InputEnabled, setSf6InputEnabled] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [customControls, setCustomControls] = useState({
+    directions: {
+      up: "ArrowUp",
+      down: "ArrowDown",
+      left: "ArrowLeft",
+      right: "ArrowRight",
+    },
+    attacks: {
+      lp: "q",
+      mp: "w",
+      hp: "e",
+      lk: "a",
+      mk: "s",
+      hk: "d",
+    },
+  });
+  const [recordingKey, setRecordingKey] = useState<string | null>(null);
+
+  // Update keyToInputMap when custom controls change
+  const keyToInputMap = {
+    [customControls.directions.left]: "4",
+    [customControls.directions.right]: "6",
+    [customControls.directions.up]: "8",
+    [customControls.directions.down]: "2",
+    [customControls.attacks.lp]: "lp",
+    [customControls.attacks.mp]: "mp",
+    [customControls.attacks.hp]: "hp",
+    [customControls.attacks.lk]: "lk",
+    [customControls.attacks.mk]: "mk",
+    [customControls.attacks.hk]: "hk",
+  };
+
+  // Map directional combinations
+  const directionalCombinations: { [key: string]: { [key: string]: string } } =
+    {
+      "4": { "2": "1", "8": "7" }, // Left + Down = Down-Left, Left + Up = Up-Left
+      "6": { "2": "3", "8": "9" }, // Right + Down = Down-Right, Right + Up = Up-Right
+      "2": { "4": "1", "6": "3" }, // Down + Left = Down-Left, Down + Right = Down-Right
+      "8": { "4": "7", "6": "9" }, // Up + Left = Up-Left, Up + Right = Up-Right
+    };
 
   const handleImageClick = (filename: string) => {
     if (inputRef.current) {
@@ -106,8 +152,174 @@ const App = () => {
     }
   };
 
+  const addInputIcon = (input: string) => {
+    if (!inputRef.current) return;
+
+    const img = document.createElement("img");
+    img.src = `./images/icons/${input}.png`;
+    img.alt = input;
+    img.style.width = `${iconSize}px`;
+    img.style.height = `${iconSize}px`;
+    inputRef.current.appendChild(img);
+  };
+
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    if (e.key === "Backspace") {
+    if (recordingKey) {
+      e.preventDefault();
+      const newKey = e.key;
+
+      // Create a new controls object with the updated key
+      const newControls = { ...customControls };
+      if (recordingKey.startsWith("dir_")) {
+        const direction = recordingKey.replace("dir_", "");
+        newControls.directions = {
+          ...newControls.directions,
+          [direction]: newKey,
+        };
+      } else if (recordingKey in customControls.attacks) {
+        newControls.attacks = {
+          ...newControls.attacks,
+          [recordingKey]: newKey,
+        };
+      }
+
+      // Update the controls state
+      setCustomControls(newControls);
+      setRecordingKey(null);
+      return;
+    }
+
+    if (!sf6InputEnabled) {
+      if (e.key === "Backspace") {
+        const selection = window.getSelection();
+        if (selection && inputRef.current && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+
+          if (range.collapsed) {
+            e.preventDefault();
+            const node = range.startContainer;
+
+            if (node === inputRef.current) {
+              if (range.startOffset > 0) {
+                const childNode =
+                  inputRef.current.childNodes[range.startOffset - 1];
+                if (childNode.nodeType === Node.TEXT_NODE) {
+                  const textNode = childNode as Text;
+                  if (textNode.length > 0) {
+                    textNode.deleteData(textNode.length - 1, 1);
+                    if (textNode.length === 0) {
+                      inputRef.current.removeChild(textNode);
+                    }
+                  }
+                } else {
+                  inputRef.current.removeChild(childNode);
+                }
+              }
+            } else if (node.nodeType === Node.TEXT_NODE) {
+              const textNode = node as Text;
+              if (range.startOffset > 0) {
+                if (textNode.length > 0 && range.startOffset - 1 >= 0) {
+                  textNode.deleteData(range.startOffset - 1, 1);
+                  if (textNode.length === 0) {
+                    textNode.parentNode?.removeChild(textNode);
+                  }
+                }
+              } else if (textNode.previousSibling) {
+                const prevNode = textNode.previousSibling;
+                if (prevNode.nodeType === Node.TEXT_NODE) {
+                  const prevTextNode = prevNode as Text;
+                  if (prevTextNode.length > 0) {
+                    prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                    if (prevTextNode.length === 0) {
+                      prevTextNode.parentNode?.removeChild(prevTextNode);
+                    }
+                  }
+                } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
+                  prevNode.parentNode?.removeChild(prevNode);
+                }
+              }
+            } else if (node.nodeType === Node.ELEMENT_NODE) {
+              const elementNode = node as HTMLElement;
+              if (elementNode.nodeName === "IMG") {
+                elementNode.parentNode?.removeChild(elementNode);
+              } else if (range.startOffset > 0) {
+                const childNode = elementNode.childNodes[range.startOffset - 1];
+                if (childNode.nodeType === Node.TEXT_NODE) {
+                  const textNode = childNode as Text;
+                  if (textNode.length > 0) {
+                    textNode.deleteData(textNode.length - 1, 1);
+                    if (textNode.length === 0) {
+                      textNode.parentNode?.removeChild(textNode);
+                    }
+                  }
+                } else {
+                  elementNode.removeChild(childNode);
+                }
+              } else if (elementNode.previousSibling) {
+                const prevNode = elementNode.previousSibling;
+                if (prevNode.nodeType === Node.TEXT_NODE) {
+                  const prevTextNode = prevNode as Text;
+                  if (prevTextNode.length > 0) {
+                    prevTextNode.deleteData(prevTextNode.length - 1, 1);
+                    if (prevTextNode.length === 0) {
+                      prevTextNode.parentNode?.removeChild(prevTextNode);
+                    }
+                  }
+                } else if (prevNode.nodeType === Node.ELEMENT_NODE) {
+                  prevNode.parentNode?.removeChild(prevNode);
+                }
+              }
+            }
+          } else {
+            e.preventDefault();
+            range.deleteContents();
+            selection.collapseToStart();
+          }
+        }
+        return;
+      }
+    }
+
+    const input = keyToInputMap[e.key];
+
+    if (input) {
+      e.preventDefault();
+
+      // Update held keys immediately using ref
+      heldKeysRef.current.add(e.key);
+
+      // Handle directional inputs
+      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+        const baseDirection = input;
+        let directionToAdd = baseDirection;
+
+        // Check for directional combinations
+        const heldDirections = Array.from(heldKeysRef.current)
+          .filter((key) =>
+            ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)
+          )
+          .map((key) => keyToInputMap[key]);
+
+        // If we have a held direction, check for combinations
+        if (heldDirections.length > 0) {
+          for (const heldDir of heldDirections) {
+            if (directionalCombinations[heldDir]?.[baseDirection]) {
+              directionToAdd = directionalCombinations[heldDir][baseDirection];
+              break;
+            }
+          }
+        }
+
+        // Only add the direction if it's different from the last one added
+        if (directionToAdd !== lastDirectionAddedRef.current) {
+          addInputIcon(directionToAdd);
+          lastDirectionAddedRef.current = directionToAdd;
+        }
+      } else {
+        // Handle punch/kick inputs
+        addInputIcon(input);
+      }
+    } else if (e.key === "Backspace") {
       const selection = window.getSelection();
       if (selection && inputRef.current && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
@@ -192,6 +404,23 @@ const App = () => {
           range.deleteContents();
           selection.collapseToStart();
         }
+      }
+    }
+  };
+
+  const handleKeyUp = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!sf6InputEnabled) return;
+
+    // Update held keys immediately using ref
+    heldKeysRef.current.delete(e.key);
+
+    // Reset last direction added when all directional keys are released
+    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+      const hasDirectionalKeys = Array.from(heldKeysRef.current).some((key) =>
+        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)
+      );
+      if (!hasDirectionalKeys) {
+        lastDirectionAddedRef.current = null;
       }
     }
   };
@@ -443,6 +672,59 @@ const App = () => {
     };
   }, []);
 
+  const startRecording = (key: string) => {
+    setRecordingKey(key);
+  };
+
+  // ---------- NEW: global key listener for control recording ----------
+  useEffect(() => {
+    if (!recordingKey) return;
+
+    const handleRecordKey = (e: globalThis.KeyboardEvent) => {
+      e.preventDefault();
+      const newKey = e.key;
+
+      setCustomControls((prev) => {
+        const updated = { ...prev };
+        if (recordingKey.startsWith("dir_")) {
+          const dir = recordingKey.replace("dir_", "");
+          updated.directions = { ...updated.directions, [dir]: newKey };
+        } else if (recordingKey in prev.attacks) {
+          updated.attacks = { ...updated.attacks, [recordingKey]: newKey };
+        }
+        return updated;
+      });
+
+      setRecordingKey(null);
+    };
+
+    window.addEventListener("keydown", handleRecordKey);
+    return () => {
+      window.removeEventListener("keydown", handleRecordKey);
+    };
+  }, [recordingKey]);
+
+  // -------------------------------------------------------------------
+
+  const getKeyDisplay = (key: string, identifier?: string) => {
+    if (identifier && recordingKey === identifier) {
+      return "Press any key...";
+    }
+    // Convert arrow keys to their display names
+    switch (key) {
+      case "ArrowUp":
+        return "↑";
+      case "ArrowDown":
+        return "↓";
+      case "ArrowLeft":
+        return "←";
+      case "ArrowRight":
+        return "→";
+      default:
+        return key.length === 1 ? key.toUpperCase() : key;
+    }
+  };
+
   return (
     <div className="flex-container">
       <label htmlFor="input-preview">Input Preview</label>
@@ -451,6 +733,7 @@ const App = () => {
         ref={inputRef}
         contentEditable
         onKeyDown={handleKeyDown}
+        onKeyUp={handleKeyUp}
         className="input-preview"
         tabIndex={0}
       />
@@ -479,7 +762,189 @@ const App = () => {
           <FontAwesomeIcon icon={faKeyboard} className="button-icon" />
           Convert to Numpad Notation
         </button>
+        <div className="sf6-controls">
+          <button
+            onClick={() => setSf6InputEnabled(!sf6InputEnabled)}
+            className={`sf6-input-button ${sf6InputEnabled ? "active" : ""}`}
+          >
+            <FontAwesomeIcon icon={faGamepad} className="button-icon" />
+            {sf6InputEnabled ? "Disable SF6 Input" : "Enable SF6 Input"}
+            <div className="sf6-input-tooltip">
+              <div className="tooltip-title">SF6 Input Mode</div>
+              <div className="tooltip-section">
+                When enabled, you can input Street Fighter 6 commands directly
+                using your keyboard, and they'll be automatically converted to
+                icons in real-time. Just type as if you were playing the game!
+              </div>
+              <div className="tooltip-section">
+                <strong>Attack Controls</strong>
+                <br />
+                <span className="key-combo">{customControls.attacks.lp}</span> -
+                Light Punch
+                <br />
+                <span className="key-combo">{customControls.attacks.mp}</span> -
+                Medium Punch
+                <br />
+                <span className="key-combo">{customControls.attacks.hp}</span> -
+                Heavy Punch
+                <br />
+                <span className="key-combo">{customControls.attacks.lk}</span> -
+                Light Kick
+                <br />
+                <span className="key-combo">{customControls.attacks.mk}</span> -
+                Medium Kick
+                <br />
+                <span className="key-combo">{customControls.attacks.hk}</span> -
+                Heavy Kick
+              </div>
+            </div>
+          </button>
+          <button
+            onClick={() => setShowSettings(!showSettings)}
+            className="settings-button"
+          >
+            <FontAwesomeIcon icon={faGear} className="button-icon" />
+          </button>
+        </div>
       </div>
+
+      {showSettings && (
+        <div className="settings-modal">
+          <div className="settings-content">
+            <h2>Customize Controls</h2>
+            <div className="settings-section">
+              <h3>Directions</h3>
+              <div className="control-grid">
+                <div className="control-item">
+                  <span>Up</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "dir_up" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("dir_up")}
+                  >
+                    {getKeyDisplay(customControls.directions.up, "dir_up")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Down</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "dir_down" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("dir_down")}
+                  >
+                    {getKeyDisplay(customControls.directions.down, "dir_down")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Left</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "dir_left" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("dir_left")}
+                  >
+                    {getKeyDisplay(customControls.directions.left, "dir_left")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Right</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "dir_right" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("dir_right")}
+                  >
+                    {getKeyDisplay(
+                      customControls.directions.right,
+                      "dir_right"
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="settings-section">
+              <h3>Attacks</h3>
+              <div className="control-grid">
+                <div className="control-item">
+                  <span>Light Punch</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "lp" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("lp")}
+                  >
+                    {getKeyDisplay(customControls.attacks.lp, "lp")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Medium Punch</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "mp" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("mp")}
+                  >
+                    {getKeyDisplay(customControls.attacks.mp, "mp")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Heavy Punch</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "hp" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("hp")}
+                  >
+                    {getKeyDisplay(customControls.attacks.hp, "hp")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Light Kick</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "lk" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("lk")}
+                  >
+                    {getKeyDisplay(customControls.attacks.lk, "lk")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Medium Kick</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "mk" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("mk")}
+                  >
+                    {getKeyDisplay(customControls.attacks.mk, "mk")}
+                  </button>
+                </div>
+                <div className="control-item">
+                  <span>Heavy Kick</span>
+                  <button
+                    className={`control-key ${
+                      recordingKey === "hk" ? "recording" : ""
+                    }`}
+                    onClick={() => startRecording("hk")}
+                  >
+                    {getKeyDisplay(customControls.attacks.hk, "hk")}
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              className="close-settings"
+              onClick={() => setShowSettings(false)}
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="images-list-container">
         <ImagesList onImageClick={handleImageClick} />
       </div>
