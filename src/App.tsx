@@ -132,15 +132,6 @@ const App = () => {
     [customControls.attacks.hk]: "hk",
   };
 
-  // Map directional combinations
-  const directionalCombinations: { [key: string]: { [key: string]: string } } =
-    {
-      "4": { "2": "1", "8": "7" }, // Left + Down = Down-Left, Left + Up = Up-Left
-      "6": { "2": "3", "8": "9" }, // Right + Down = Down-Right, Right + Up = Up-Right
-      "2": { "4": "1", "6": "3" }, // Down + Left = Down-Left, Down + Right = Down-Right
-      "8": { "4": "7", "6": "9" }, // Up + Left = Up-Left, Up + Right = Up-Right
-    };
-
   const handleImageClick = (filename: string) => {
     if (inputRef.current) {
       const img = document.createElement("img");
@@ -161,6 +152,32 @@ const App = () => {
     img.style.width = `${iconSize}px`;
     img.style.height = `${iconSize}px`;
     inputRef.current.appendChild(img);
+  };
+
+  // Helper to map held directional keys to numpad direction (1,2,3,4,6,7,8,9)
+  const computeDirectionFromHeld = (held: Set<string>): string | null => {
+    const up = held.has(customControls.directions.up);
+    const down = held.has(customControls.directions.down);
+    const left = held.has(customControls.directions.left);
+    const right = held.has(customControls.directions.right);
+
+    if (up && left) return "7";
+    if (up && right) return "9";
+    if (down && left) return "1";
+    if (down && right) return "3";
+    if (up) return "8";
+    if (down) return "2";
+    if (left) return "4";
+    if (right) return "6";
+    return null;
+  };
+
+  const updateDirectionIcon = () => {
+    const currentDir = computeDirectionFromHeld(heldKeysRef.current);
+    if (currentDir && currentDir !== lastDirectionAddedRef.current) {
+      addInputIcon(currentDir);
+      lastDirectionAddedRef.current = currentDir;
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -285,36 +302,11 @@ const App = () => {
     if (input) {
       e.preventDefault();
 
-      // Update held keys immediately using ref
+      // Update held keys immediately
       heldKeysRef.current.add(e.key);
 
-      // Handle directional inputs
-      if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
-        const baseDirection = input;
-        let directionToAdd = baseDirection;
-
-        // Check for directional combinations
-        const heldDirections = Array.from(heldKeysRef.current)
-          .filter((key) =>
-            ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)
-          )
-          .map((key) => keyToInputMap[key]);
-
-        // If we have a held direction, check for combinations
-        if (heldDirections.length > 0) {
-          for (const heldDir of heldDirections) {
-            if (directionalCombinations[heldDir]?.[baseDirection]) {
-              directionToAdd = directionalCombinations[heldDir][baseDirection];
-              break;
-            }
-          }
-        }
-
-        // Only add the direction if it's different from the last one added
-        if (directionToAdd !== lastDirectionAddedRef.current) {
-          addInputIcon(directionToAdd);
-          lastDirectionAddedRef.current = directionToAdd;
-        }
+      if (["2", "4", "6", "8", "1", "3", "7", "9"].includes(input)) {
+        updateDirectionIcon();
       } else {
         // Handle punch/kick inputs
         addInputIcon(input);
