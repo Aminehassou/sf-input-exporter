@@ -2,6 +2,12 @@ import { useRef, KeyboardEvent, useEffect, useState } from "react";
 import html2canvas from "html2canvas";
 import "./App.scss";
 import ImagesList from "./components/ImagesList";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faDownload,
+  faHandFist,
+  faKeyboard,
+} from "@fortawesome/free-solid-svg-icons";
 
 const iconMap: { [key: string]: string } = {
   "1": "1.png",
@@ -462,12 +468,15 @@ const App = () => {
       </div>
       <div className="button-container">
         <button onClick={handleExport} className="export-button">
+          <FontAwesomeIcon icon={faDownload} className="button-icon" />
           Export as Image
         </button>
         <button onClick={convertToIconNotation} className="convert-button">
+          <FontAwesomeIcon icon={faHandFist} className="button-icon" />
           Convert to Icon Notation
         </button>
         <button onClick={convertToNumpadNotation} className="convert-button">
+          <FontAwesomeIcon icon={faKeyboard} className="button-icon" />
           Convert to Numpad Notation
         </button>
       </div>

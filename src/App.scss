@@ -59,58 +59,65 @@ label {
   cursor: pointer;
 }
 
-.export-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
-
-  &:hover {
-    background-color: #0056b3;
-  }
-
-  &:focus {
-    outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
-  }
-}
-
 .button-container {
   display: flex;
   gap: 1rem;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
 }
 
 .export-button,
 .convert-button {
-  padding: 10px 20px;
+  padding: 12px 24px;
   font-size: 16px;
-  background-color: #007bff;
+  font-weight: 600;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
-  transition: background-color 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
+  min-width: 200px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  .button-icon {
+    font-size: 18px;
+    width: 20px;
+  }
 
   &:hover {
-    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   }
 
   &:focus {
     outline: none;
-    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3);
+  }
+}
+
+.export-button {
+  background: linear-gradient(135deg, #ff4d4d 0%, #cc0000 100%);
+
+  &:hover {
+    background: linear-gradient(135deg, #cc0000 0%, #990000 100%);
   }
 }
 
 .convert-button {
-  background-color: #28a745;
+  background: linear-gradient(135deg, #4d79ff 0%, #0033cc 100%);
 
   &:hover {
-    background-color: #218838;
+    background: linear-gradient(135deg, #0033cc 0%, #002699 100%);
   }
 }
 
