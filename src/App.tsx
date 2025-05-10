@@ -173,11 +173,13 @@ const App = () => {
   };
 
   const updateDirectionIcon = () => {
-    const currentDir = computeDirectionFromHeld(heldKeysRef.current);
-    if (currentDir && currentDir !== lastDirectionAddedRef.current) {
-      addInputIcon(currentDir);
-      lastDirectionAddedRef.current = currentDir;
-    }
+    requestAnimationFrame(() => {
+      const currentDir = computeDirectionFromHeld(heldKeysRef.current);
+      if (currentDir && currentDir !== lastDirectionAddedRef.current) {
+        addInputIcon(currentDir);
+        lastDirectionAddedRef.current = currentDir;
+      }
+    });
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -406,12 +408,21 @@ const App = () => {
     // Update held keys immediately using ref
     heldKeysRef.current.delete(e.key);
 
-    // Reset last direction added when all directional keys are released
-    if (["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(e.key)) {
+    // Determine if the released key is one of the configured directional keys
+    const directionalKeys = Object.values(customControls.directions);
+    const isDirectionalKey = directionalKeys.includes(e.key);
+
+    if (isDirectionalKey) {
+      // If there are still directional keys held, update the current direction icon
       const hasDirectionalKeys = Array.from(heldKeysRef.current).some((key) =>
-        ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(key)
+        directionalKeys.includes(key)
       );
-      if (!hasDirectionalKeys) {
+
+      if (hasDirectionalKeys) {
+        // Recompute the direction after the key release (e.g., 3 -> 6 when Down is released)
+        updateDirectionIcon();
+      } else {
+        // If no directional keys are held, reset last direction tracker
         lastDirectionAddedRef.current = null;
       }
     }
