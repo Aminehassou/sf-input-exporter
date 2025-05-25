@@ -295,10 +295,11 @@ const App = () => {
             selection.collapseToStart();
           }
         }
-        return;
       }
+      return;
     }
 
+    // SF6 Input Mode Logic - only runs when sf6InputEnabled is true
     const input = keyToInputMap[e.key];
 
     if (input) {
@@ -398,6 +399,40 @@ const App = () => {
           range.deleteContents();
           selection.collapseToStart();
         }
+      }
+    } else {
+      // Prevent typing any other characters when SF6 input is enabled
+      // Allow only certain navigation/editing keys
+      const allowedKeys = [
+        "Tab",
+        "Enter",
+        "Escape",
+        "Home",
+        "End",
+        "PageUp",
+        "PageDown",
+        "ArrowLeft",
+        "ArrowRight",
+        "ArrowUp",
+        "ArrowDown",
+        "Delete",
+        "Insert",
+        "F1",
+        "F2",
+        "F3",
+        "F4",
+        "F5",
+        "F6",
+        "F7",
+        "F8",
+        "F9",
+        "F10",
+        "F11",
+        "F12",
+      ];
+
+      if (!allowedKeys.includes(e.key)) {
+        e.preventDefault();
       }
     }
   };
